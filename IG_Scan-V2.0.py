@@ -37,10 +37,12 @@ if data_mode == "📁 Cartella locale":
 
     if st.sidebar.button("📂 Sfoglia cartella..."):
         # Lancia un processo Python separato per il dialog nativo di Windows
+        init_dir = st.session_state['local_folder'].replace("\\", "/")
         script = (
             "import tkinter as tk; from tkinter import filedialog; "
             "root = tk.Tk(); root.withdraw(); root.attributes('-topmost', True); "
-            f"print(filedialog.askdirectory(title='Seleziona cartella dati Instagram', initialdir=r'{st.session_state[\"local_folder\"]}')); "
+            "print(filedialog.askdirectory(title='Seleziona cartella dati Instagram', "
+            f"initialdir='{init_dir}')); "
             "root.destroy()"
         )
         result = subprocess.run(
