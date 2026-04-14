@@ -28,7 +28,39 @@ data_mode = st.sidebar.radio(
 )
 
 if data_mode == "📁 Cartella locale":
-    root_path = st.sidebar.text_input("Percorso cartella dati:", value=r"p:\IG_SCAN\instagram_data")
+    # Inizializza il percorso salvato in sessione
+    if 'local_folder' not in st.session_state:
+        st.session_state['local_folder'] = r"p:\IG_SCAN\instagram_data"
+
+    # Pulsante per aprire la finestra di selezione cartella (solo locale)
+    try:
+        import tkinter as tk
+        from tkinter import filedialog
+        _has_tkinter = True
+    except ImportError:
+        _has_tkinter = False
+
+    if _has_tkinter:
+        if st.sidebar.button("📂 Sfoglia cartella..."):
+            root = tk.Tk()
+            root.withdraw()
+            root.attributes('-topmost', True)
+            folder = filedialog.askdirectory(
+                title="Seleziona la cartella con i dati Instagram",
+                initialdir=st.session_state['local_folder']
+            )
+            root.destroy()
+            if folder:
+                st.session_state['local_folder'] = folder
+                st.rerun()
+
+    root_path = st.sidebar.text_input(
+        "Percorso cartella dati:",
+        value=st.session_state['local_folder'],
+        key="folder_input"
+    )
+    # Aggiorna la sessione se l'utente modifica manualmente il campo
+    st.session_state['local_folder'] = root_path
 else:
     uploaded_file = st.sidebar.file_uploader(
         "Carica il file ZIP con i dati Instagram:",
