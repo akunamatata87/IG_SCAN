@@ -32,27 +32,25 @@ if data_mode == "📁 Cartella locale":
     if 'local_folder' not in st.session_state:
         st.session_state['local_folder'] = r"p:\IG_SCAN\instagram_data"
 
-    # Pulsante per aprire la finestra di selezione cartella (solo locale)
-    try:
-        import tkinter as tk
-        from tkinter import filedialog
-        _has_tkinter = True
-    except ImportError:
-        _has_tkinter = False
+    # Pulsante per aprire la finestra di selezione cartella (solo locale, via subprocess)
+    import subprocess, sys
 
-    if _has_tkinter:
-        if st.sidebar.button("📂 Sfoglia cartella..."):
-            root = tk.Tk()
-            root.withdraw()
-            root.attributes('-topmost', True)
-            folder = filedialog.askdirectory(
-                title="Seleziona la cartella con i dati Instagram",
-                initialdir=st.session_state['local_folder']
-            )
-            root.destroy()
-            if folder:
-                st.session_state['local_folder'] = folder
-                st.rerun()
+    if st.sidebar.button("📂 Sfoglia cartella..."):
+        # Lancia un processo Python separato per il dialog nativo di Windows
+        script = (
+            "import tkinter as tk; from tkinter import filedialog; "
+            "root = tk.Tk(); root.withdraw(); root.attributes('-topmost', True); "
+            f"print(filedialog.askdirectory(title='Seleziona cartella dati Instagram', initialdir=r'{st.session_state[\"local_folder\"]}')); "
+            "root.destroy()"
+        )
+        result = subprocess.run(
+            [sys.executable, "-c", script],
+            capture_output=True, text=True, timeout=60
+        )
+        folder = result.stdout.strip()
+        if folder:
+            st.session_state['local_folder'] = folder
+            st.rerun()
 
     root_path = st.sidebar.text_input(
         "Percorso cartella dati:",
