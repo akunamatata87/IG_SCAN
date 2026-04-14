@@ -28,40 +28,52 @@ data_mode = st.sidebar.radio(
 )
 
 if data_mode == "📁 Cartella locale":
-    # Inizializza il percorso salvato in sessione
+    # Inizializza il percorso di navigazione
     if 'local_folder' not in st.session_state:
         st.session_state['local_folder'] = r"p:\IG_SCAN\instagram_data"
+    if 'browse_path' not in st.session_state:
+        st.session_state['browse_path'] = os.path.dirname(st.session_state['local_folder'])
 
-    # Pulsante per aprire la finestra di selezione cartella (solo locale)
-    import subprocess, platform
+    with st.sidebar.expander("📂 Sfoglia cartella", expanded=False):
+        browse = st.session_state['browse_path']
 
-    if platform.system() == "Windows" and st.sidebar.button("📂 Sfoglia cartella..."):
-        # Usa PowerShell con Windows Forms, forzando la finestra in primo piano
-        ps_script = (
-            "Add-Type -AssemblyName System.Windows.Forms; "
-            "$owner = New-Object System.Windows.Forms.Form; "
-            "$owner.TopMost = $true; "
-            "$f = New-Object System.Windows.Forms.FolderBrowserDialog; "
-            "$f.Description = 'Seleziona la cartella con i dati Instagram'; "
-            "$result = $f.ShowDialog($owner); "
-            "$owner.Dispose(); "
-            "if ($result -eq 'OK') { $f.SelectedPath }"
-        )
-        result = subprocess.run(
-            ["powershell", "-sta", "-command", ps_script],
-            capture_output=True, text=True, timeout=120
-        )
-        folder = result.stdout.strip()
-        if folder and os.path.isdir(folder):
-            st.session_state['local_folder'] = folder
-            st.rerun()
+        # Mostra il percorso corrente
+        st.caption(f"📍 {browse}")
+
+        # Pulsante per salire di un livello
+        parent = os.path.dirname(browse)
+        if parent != browse:
+            if st.button("⬆️ Cartella superiore"):
+                st.session_state['browse_path'] = parent
+                st.rerun()
+
+        # Elenca le sottocartelle
+        try:
+            subdirs = sorted([d for d in os.listdir(browse) if os.path.isdir(os.path.join(browse, d)) and not d.startswith('.')])
+        except PermissionError:
+            subdirs = []
+            st.warning("Accesso negato a questa cartella.")
+
+        if subdirs:
+            selected = st.selectbox("Sottocartelle:", subdirs, key="browse_select")
+            col_a, col_b = st.columns(2)
+            with col_a:
+                if st.button("📂 Apri"):
+                    st.session_state['browse_path'] = os.path.join(browse, selected)
+                    st.rerun()
+            with col_b:
+                if st.button("✅ Seleziona"):
+                    st.session_state['local_folder'] = os.path.join(browse, selected)
+                    st.session_state['browse_path'] = os.path.join(browse, selected)
+                    st.rerun()
+        else:
+            st.info("Nessuna sottocartella.")
 
     root_path = st.sidebar.text_input(
-        "Percorso cartella dati:",
+        "Oppure inserisci il percorso:",
         value=st.session_state['local_folder'],
         key="folder_input"
     )
-    # Aggiorna la sessione se l'utente modifica manualmente il campo
     st.session_state['local_folder'] = root_path
 else:
     uploaded_file = st.sidebar.file_uploader(
