@@ -32,25 +32,24 @@ if data_mode == "📁 Cartella locale":
     if 'local_folder' not in st.session_state:
         st.session_state['local_folder'] = r"p:\IG_SCAN\instagram_data"
 
-    # Pulsante per aprire la finestra di selezione cartella (solo locale, via subprocess)
-    import subprocess, sys
+    # Pulsante per aprire la finestra di selezione cartella (solo locale)
+    import subprocess, platform
 
-    if st.sidebar.button("📂 Sfoglia cartella..."):
-        # Lancia un processo Python separato per il dialog nativo di Windows
-        init_dir = st.session_state['local_folder'].replace("\\", "/")
-        script = (
-            "import tkinter as tk; from tkinter import filedialog; "
-            "root = tk.Tk(); root.withdraw(); root.attributes('-topmost', True); "
-            "print(filedialog.askdirectory(title='Seleziona cartella dati Instagram', "
-            f"initialdir='{init_dir}')); "
-            "root.destroy()"
+    if platform.system() == "Windows" and st.sidebar.button("📂 Sfoglia cartella..."):
+        # Usa PowerShell con Windows Forms per il dialog nativo
+        ps_script = (
+            "Add-Type -AssemblyName System.Windows.Forms; "
+            "$f = New-Object System.Windows.Forms.FolderBrowserDialog; "
+            "$f.Description = 'Seleziona la cartella con i dati Instagram'; "
+            "$f.ShowDialog() | Out-Null; "
+            "$f.SelectedPath"
         )
         result = subprocess.run(
-            [sys.executable, "-c", script],
-            capture_output=True, text=True, timeout=60
+            ["powershell", "-command", ps_script],
+            capture_output=True, text=True, timeout=120
         )
         folder = result.stdout.strip()
-        if folder:
+        if folder and os.path.isdir(folder):
             st.session_state['local_folder'] = folder
             st.rerun()
 
