@@ -1,0 +1,36 @@
+# Dati personali Instagram - NON caricare su GitHub
+instagram_data/
+*.json
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+.venv/
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+Thumbs.db
+.DS_Store
+
+# Streamlit
+.streamlit/
+
+# File ignorati manualmente
+.ignore/
+
+# Visual Studio
+.vs/
+
+# Eseguibili
+*.exe
+
+# Gemini
+.gemini/
