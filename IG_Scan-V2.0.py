@@ -21,11 +21,17 @@ st.sidebar.title("⚙️ Impostazioni")
 
 # 1. Configurazione Dati
 st.sidebar.subheader("📂 Dati")
-data_mode = st.sidebar.radio(
-    "Sorgente dati:",
-    ["📁 Cartella locale", "☁️ Carica ZIP"],
-    horizontal=True
-)
+import platform
+_is_local = platform.system() == "Windows"
+
+if _is_local:
+    data_mode = st.sidebar.radio(
+        "Sorgente dati:",
+        ["📁 Cartella locale", "☁️ Carica ZIP"],
+        horizontal=True
+    )
+else:
+    data_mode = "☁️ Carica ZIP"
 
 if data_mode == "📁 Cartella locale":
     # Inizializza il percorso di navigazione
