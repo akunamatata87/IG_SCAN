@@ -4,6 +4,9 @@ import os
 import pandas as pd
 import plotly.express as px
 from datetime import datetime
+import zipfile
+import tempfile
+import io
 
 # --- CONFIGURAZIONE PAGINA ---
 st.set_page_config(
@@ -18,7 +21,37 @@ st.sidebar.title("⚙️ Impostazioni")
 
 # 1. Configurazione Dati
 st.sidebar.subheader("📂 Dati")
-root_path = st.sidebar.text_input("Percorso cartella dati:", value=r"p:\IG_SCAN\instagram_data")
+data_mode = st.sidebar.radio(
+    "Sorgente dati:",
+    ["📁 Cartella locale", "☁️ Carica ZIP"],
+    horizontal=True
+)
+
+if data_mode == "📁 Cartella locale":
+    root_path = st.sidebar.text_input("Percorso cartella dati:", value=r"p:\IG_SCAN\instagram_data")
+else:
+    uploaded_file = st.sidebar.file_uploader(
+        "Carica il file ZIP con i dati Instagram:",
+        type=["zip"],
+        help="Il file ZIP deve contenere sottocartelle nominate per data (es. 2026-03-20, 2026-04-03, ...)"
+    )
+    if uploaded_file is not None:
+        # Estrai solo se è un file nuovo o diverso dal precedente
+        if 'zip_temp_dir' not in st.session_state or st.session_state.get('zip_name') != uploaded_file.name:
+            temp_dir = tempfile.mkdtemp()
+            with zipfile.ZipFile(io.BytesIO(uploaded_file.getvalue())) as zf:
+                zf.extractall(temp_dir)
+            # Se lo ZIP contiene una sola cartella radice (es. "instagram_data/"), entra dentro
+            contents = [d for d in os.listdir(temp_dir) if os.path.isdir(os.path.join(temp_dir, d))]
+            if len(contents) == 1:
+                root_path = os.path.join(temp_dir, contents[0])
+            else:
+                root_path = temp_dir
+            st.session_state['zip_temp_dir'] = root_path
+            st.session_state['zip_name'] = uploaded_file.name
+        root_path = st.session_state['zip_temp_dir']
+    else:
+        root_path = None
 
 # 2. Personalizzazione Colori
 st.sidebar.markdown("---")
@@ -253,6 +286,16 @@ def process_timeline(subfolders):
 # --- APP LOGIC ---
 
 st.title("📸 InstaAnalytics Pro")
+
+if root_path is None:
+    st.info("☁️ Carica un file ZIP dalla sidebar per iniziare l'analisi.")
+    st.markdown("""
+    ### 📦 Come preparare il file ZIP
+    1. Crea una cartella con sottocartelle nominate per data (es. `2026-03-20`, `2026-04-03`, ...)
+    2. In ogni sottocartella metti i file `followers_1.json` e `following.json`
+    3. Comprimi tutto in un file ZIP e caricalo qui!
+    """)
+    st.stop()
 
 if not os.path.exists(root_path):
     st.warning("Cartella dati non trovata. Inserisci il percorso corretto nella sidebar.")
