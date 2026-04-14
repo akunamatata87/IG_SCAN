@@ -36,16 +36,19 @@ if data_mode == "📁 Cartella locale":
     import subprocess, platform
 
     if platform.system() == "Windows" and st.sidebar.button("📂 Sfoglia cartella..."):
-        # Usa PowerShell con Windows Forms per il dialog nativo
+        # Usa PowerShell con Windows Forms, forzando la finestra in primo piano
         ps_script = (
             "Add-Type -AssemblyName System.Windows.Forms; "
+            "$owner = New-Object System.Windows.Forms.Form; "
+            "$owner.TopMost = $true; "
             "$f = New-Object System.Windows.Forms.FolderBrowserDialog; "
             "$f.Description = 'Seleziona la cartella con i dati Instagram'; "
-            "$f.ShowDialog() | Out-Null; "
-            "$f.SelectedPath"
+            "$result = $f.ShowDialog($owner); "
+            "$owner.Dispose(); "
+            "if ($result -eq 'OK') { $f.SelectedPath }"
         )
         result = subprocess.run(
-            ["powershell", "-command", ps_script],
+            ["powershell", "-sta", "-command", ps_script],
             capture_output=True, text=True, timeout=120
         )
         folder = result.stdout.strip()
