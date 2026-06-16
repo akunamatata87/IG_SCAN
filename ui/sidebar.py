@@ -111,14 +111,15 @@ def render_data_source() -> str | None:
 # Local-folder browsing (Windows only)
 # ---------------------------------------------------------------------------
 
-def _render_local_folder() -> str:
+def _render_local_folder() -> str | None:
     """Render the local-folder browser and return the selected path."""
-
+    # Use parent directory since this script is in ui/
+    base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    default_path = os.path.join(base_dir, "instagram_data")
+    
     # Initialise session-state defaults
     if "local_folder" not in st.session_state:
-        st.session_state["local_folder"] = os.path.join(
-            os.path.dirname(os.path.abspath(__file__)), "instagram_data"
-        )
+        st.session_state["local_folder"] = default_path
     if "browse_path" not in st.session_state:
         st.session_state["browse_path"] = os.path.dirname(
             st.session_state["local_folder"]

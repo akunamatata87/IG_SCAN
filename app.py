@@ -41,14 +41,15 @@ st.set_page_config(
 
 # --- SIDEBAR: SETTINGS TITLE + LANGUAGE TOGGLE ---
 st.sidebar.title(f"⚙️ {t('settings')}")
-
-# --- SIDEBAR: DATA SOURCE ---
-st.sidebar.subheader(f"📂 {t('data')}")
-data_path = render_data_source()
+render_language_toggle()
 
 # --- SIDEBAR: THEME ---
-st.sidebar.markdown("---")
 theme = render_theme_settings()
+
+# --- SIDEBAR: DATA SOURCE ---
+st.sidebar.markdown("---")
+st.sidebar.subheader(f"📂 {t('data')}")
+data_path = render_data_source()
 
 # --- INJECT CUSTOM CSS ---
 inject_css(
@@ -60,13 +61,8 @@ inject_css(
     btn_txt=theme['btn_txt']
 )
 
-# --- TITLE + LANGUAGE TOGGLE ---
-title_col, lang_col = st.columns([6, 1])
-with title_col:
-    st.title(t('title'))
-with lang_col:
-    st.write("")  # Spacing
-    render_language_toggle()
+# --- TITLE ---
+st.title(t('title'))
 
 # --- LOAD OR MIGRATE STATE ---
 state = load_state()

@@ -385,7 +385,7 @@ def render_language_toggle() -> None:
     triggers a full Streamlit rerun.
     """
     current_lang: str = st.session_state.get("lang", "it")
-    col_it, col_en = st.columns(2)
+    col_it, col_en = st.sidebar.columns(2)
 
     with col_it:
         label_it = "● 🇮🇹" if current_lang == "it" else "🇮🇹"
