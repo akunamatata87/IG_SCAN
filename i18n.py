@@ -121,6 +121,7 @@ STRINGS: dict[str, dict[str, str]] = {
         # Trend tab
         "trend_over_time": "Andamento nel tempo",
         "ratio": "Rapporto Followers/Following",
+        "log_scale": "Scala logaritmica",
 
         # Timeline tab
         "full_timeline": "📅 Cronologia Completa Eventi",
@@ -284,6 +285,7 @@ STRINGS: dict[str, dict[str, str]] = {
         # Trend tab
         "trend_over_time": "Trend over time",
         "ratio": "Followers/Following Ratio",
+        "log_scale": "Logarithmic scale",
 
         # Timeline tab
         "full_timeline": "📅 Full Event Timeline",

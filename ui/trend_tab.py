@@ -51,7 +51,12 @@ def render_trend_tab(trend_data: list[dict], theme: dict):
     st.markdown('---')
 
     # --- Section 2: Ratio area chart ---------------------------------------
-    st.subheader(t('ratio'))
+    col1, col2 = st.columns([3, 1])
+    with col1:
+        st.subheader(t('ratio'))
+    with col2:
+        st.write("") # small vertical spacing
+        use_log = st.toggle(t('log_scale'), value=False)
 
     fig_ratio = px.area(
         df,
@@ -59,6 +64,9 @@ def render_trend_tab(trend_data: list[dict], theme: dict):
         y='ratio',
         markers=True,
     )
+
+    if use_log:
+        fig_ratio.update_yaxes(type='log')
 
     fig_ratio.update_layout(
         plot_bgcolor=theme['card_bg'],
