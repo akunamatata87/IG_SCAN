@@ -68,11 +68,11 @@ def main():
         app_dir = os.path.dirname(os.path.abspath(__file__))
         python_exe = sys.executable
 
-    script_path = os.path.join(app_dir, "IG_Scan-V2.0.py")
+    script_path = os.path.join(app_dir, "app.py")
 
     if not os.path.exists(script_path):
         print(f"ERROR: Could not find {script_path}")
-        print("Make sure IG_Scan-V2.0.py is in the same folder as this executable.")
+        print("Make sure app.py is in the same folder as this executable.")
         input("Press Enter to exit...")
         sys.exit(1)
 

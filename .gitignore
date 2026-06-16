@@ -34,3 +34,8 @@ Thumbs.db
 
 # Gemini
 .gemini/
+
+# Build
+build/
+dist/
+*.spec
