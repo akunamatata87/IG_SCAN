@@ -28,7 +28,7 @@ from state_manager import (
 # State Management
 # ---------------------------------------------------------------------------
 
-def render_state_management(state: dict) -> None:
+def render_state_management(state: dict | None = None) -> None:
     """Render the state management expander for backup/restore."""
     with st.sidebar.expander(t("state_management"), expanded=False):
         directory = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))

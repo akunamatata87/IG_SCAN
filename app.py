@@ -51,6 +51,10 @@ st.sidebar.markdown("---")
 st.sidebar.subheader(f"📂 {t('data')}")
 data_path = render_data_source()
 
+# --- SIDEBAR: STATE MANAGEMENT ---
+st.sidebar.markdown("---")
+render_state_management()
+
 # --- INJECT CUSTOM CSS ---
 inject_css(
     primary_col=theme['primary_col'],
@@ -103,11 +107,6 @@ if state is None:
 if data_path:
     st.sidebar.markdown("---")
     render_import_section(state, data_path)
-
-# --- SIDEBAR: STATE MANAGEMENT ---
-if state is not None:
-    st.sidebar.markdown("---")
-    render_state_management(state)
 
 # --- SIDEBAR: DATE COMPARISON ---
 snapshot_labels = get_snapshot_labels(state)
