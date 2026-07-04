@@ -292,9 +292,17 @@ def render_import_section(state: dict, data_path: str | dict[str, str]) -> None:
         )
 
     if st.sidebar.button(t("import_new_data"), help=t("import_help")):
+        existing_labels = []
+        if state is not None and "snapshots" in state:
+            existing_labels = [s["label"] for s in state["snapshots"]]
+
         if is_multi:
             total_imported = 0
             for snap_label, path in data_path.items():
+                if snap_label in existing_labels:
+                    st.sidebar.warning(t("snapshot_skipped", label=snap_label))
+                    continue
+                    
                 new_data = load_dataset(path)
                 # Skip empty datasets
                 if not new_data['followers'] and not new_data['following']:
@@ -309,27 +317,32 @@ def render_import_section(state: dict, data_path: str | dict[str, str]) -> None:
             else:
                 st.sidebar.info(t("import_no_changes"))
         else:
-            new_data = load_dataset(data_path)
-
             if not label:
                 from datetime import datetime
                 label = datetime.now().strftime("%Y-%m-%d")
 
-            state, events = import_snapshot(state, new_data, label)
-            save_state(state)
-
-            has_changes = any([
-                events.get("new_followers"),
-                events.get("lost_followers"),
-                events.get("new_following"),
-                events.get("lost_following"),
-            ])
-
-            if has_changes or events.get("is_baseline"):
-                st.sidebar.success(t("import_success"))
+            if label in existing_labels:
+                st.sidebar.warning(t("snapshot_skipped", label=label))
             else:
-                st.sidebar.info(t("import_no_changes"))
+                new_data = load_dataset(data_path)
+                state, events = import_snapshot(state, new_data, label)
+                save_state(state)
+    
+                has_changes = any([
+                    events.get("new_followers"),
+                    events.get("lost_followers"),
+                    events.get("new_following"),
+                    events.get("lost_following"),
+                ])
+    
+                if has_changes or events.get("is_baseline"):
+                    st.sidebar.success(t("import_success"))
+                else:
+                    st.sidebar.info(t("import_no_changes"))
 
+        # Wait a moment so the user can read the success/warning messages
+        import time
+        time.sleep(1.5)
         st.rerun()
 
 

@@ -67,6 +67,7 @@ STRINGS: dict[str, dict[str, str]] = {
         ),
         "import_error": "Errore durante l'importazione.",
         "snapshot_label": "Etichetta snapshot (opzionale):",
+        "snapshot_skipped": "Snapshot '{label}' ignorato (già presente).",
 
         # Migration
         "migration_detected": (
@@ -232,6 +233,7 @@ STRINGS: dict[str, dict[str, str]] = {
         ),
         "import_error": "Error during import.",
         "snapshot_label": "Snapshot label (optional):",
+        "snapshot_skipped": "Snapshot '{label}' skipped (already exists).",
 
         # Migration
         "migration_detected": (
