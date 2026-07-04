@@ -76,17 +76,17 @@ MAX_ZIP_SIZE = 500 * 1024 * 1024  # 500 MB
 # Data source
 # ---------------------------------------------------------------------------
 
-def render_data_source() -> str | None:
-    """Render data-source options in the sidebar and return the selected path.
+def render_data_source() -> str | dict[str, str] | None:
+    """Render data-source options in the sidebar and return the selected path(s).
 
     On Windows the user may choose between a local folder browser and a
     ZIP upload.  On all other platforms only the ZIP upload is offered.
 
     Returns
     -------
-    str | None
-        Absolute path to the data directory, or ``None`` when no data
-        source has been selected yet.
+    str | dict[str, str] | None
+        Absolute path to the data directory (or dict of labels mapped to paths for multiple ZIPs), 
+        or ``None`` when no data source has been selected yet.
     """
     is_windows = platform.system() == "Windows"
 
@@ -185,36 +185,42 @@ def _render_local_folder() -> str | None:
 # ZIP upload
 # ---------------------------------------------------------------------------
 
-def _render_zip_upload() -> str | None:
-    """Render the ZIP uploader and return the extracted path (or *None*)."""
+def _render_zip_upload() -> dict[str, str] | None:
+    """Render the ZIP uploader and return a dict mapping labels to extracted paths (or *None*)."""
 
-    uploaded_file = st.sidebar.file_uploader(
+    uploaded_files = st.sidebar.file_uploader(
         t("upload_zip_help"),
         type=["zip"],
+        accept_multiple_files=True,
         help=t("upload_zip_tooltip"),
     )
 
-    if uploaded_file is None:
+    if not uploaded_files:
         return None
 
-    # Only extract when a *new* file is uploaded
+    # Sort files by name chronologically
+    uploaded_files.sort(key=lambda f: f.name)
+    current_names = [f.name for f in uploaded_files]
+
+    # Only extract when a *new* set of files is uploaded
     if (
         "zip_temp_dir" not in st.session_state
-        or st.session_state.get("zip_name") != uploaded_file.name
+        or st.session_state.get("zip_names") != current_names
     ):
         # ── Security: validate total uncompressed size ────────────
-        zip_bytes = io.BytesIO(uploaded_file.getvalue())
-        with zipfile.ZipFile(zip_bytes) as zf:
-            total_size = sum(info.file_size for info in zf.infolist())
-            if total_size > MAX_ZIP_SIZE:
-                st.sidebar.error(t("zip_too_large"))
-                return None
-
-            # ── Security: reject path-traversal entries ───────────
-            for info in zf.infolist():
-                if ".." in info.filename or info.filename.startswith("/"):
-                    st.sidebar.error(t("zip_invalid_entry"))
+        for uf in uploaded_files:
+            zip_bytes = io.BytesIO(uf.getvalue())
+            with zipfile.ZipFile(zip_bytes) as zf:
+                total_size = sum(info.file_size for info in zf.infolist())
+                if total_size > MAX_ZIP_SIZE:
+                    st.sidebar.error(t("zip_too_large"))
                     return None
+
+                # ── Security: reject path-traversal entries ───────────
+                for info in zf.infolist():
+                    if ".." in info.filename or info.filename.startswith("/"):
+                        st.sidebar.error(t("zip_invalid_entry"))
+                        return None
 
         # ── Clean up previous temp directory ──────────────────────
         if "zip_temp_dir" in st.session_state:
@@ -222,32 +228,51 @@ def _render_zip_upload() -> str | None:
 
         # ── Extract ───────────────────────────────────────────────
         temp_dir = tempfile.mkdtemp()
-        zip_bytes.seek(0)
-        with zipfile.ZipFile(zip_bytes) as zf:
-            zf.extractall(temp_dir)
+        extracted_paths = []
+        
+        for uf in uploaded_files:
+            zip_bytes = io.BytesIO(uf.getvalue())
+            zip_bytes.seek(0)
+            
+            # Create a subfolder based on the zip name
+            folder_name = uf.name.replace(".zip", "")
+            extract_path = os.path.join(temp_dir, folder_name)
+            os.makedirs(extract_path, exist_ok=True)
+            
+            with zipfile.ZipFile(zip_bytes) as zf:
+                zf.extractall(extract_path)
+                
+            # If the ZIP has a single root folder, descend into it to avoid double-nesting
+            contents = [
+                d for d in os.listdir(extract_path)
+                if os.path.isdir(os.path.join(extract_path, d))
+            ]
+            if len(contents) == 1:
+                final_path = os.path.join(extract_path, contents[0])
+            else:
+                final_path = extract_path
+                
+            extracted_paths.append(final_path)
 
-        # If the ZIP has a single root folder, descend into it
-        contents = [
-            d
-            for d in os.listdir(temp_dir)
-            if os.path.isdir(os.path.join(temp_dir, d))
-        ]
-        if len(contents) == 1:
-            root_path = os.path.join(temp_dir, contents[0])
-        else:
-            root_path = temp_dir
+        st.session_state["zip_temp_dir"] = temp_dir
+        
+        # Create a dict mapping the zip name (without .zip) to the final path
+        extracted_dict = {}
+        for name, path in zip(current_names, extracted_paths):
+            label = name.replace(".zip", "")
+            extracted_dict[label] = path
+            
+        st.session_state["extracted_dict"] = extracted_dict
+        st.session_state["zip_names"] = current_names
 
-        st.session_state["zip_temp_dir"] = root_path
-        st.session_state["zip_name"] = uploaded_file.name
-
-    return st.session_state["zip_temp_dir"]
+    return st.session_state.get("extracted_dict")
 
 
 # ---------------------------------------------------------------------------
 # Import section
 # ---------------------------------------------------------------------------
 
-def render_import_section(state: dict, data_path: str) -> None:
+def render_import_section(state: dict, data_path: str | dict[str, str]) -> None:
     """Render the *Import new data* button and handle the import workflow.
 
     Parameters
@@ -255,33 +280,55 @@ def render_import_section(state: dict, data_path: str) -> None:
     state:
         The current application state dict (from :func:`load_state`).
     data_path:
-        Path to the folder containing the Instagram export data.
+        Path to the folder containing the Instagram export data (or a dict of labels to paths).
     """
-    if st.sidebar.button(t("import_new_data"), help=t("import_help")):
-        new_data = load_dataset(data_path)
-
+    is_multi = isinstance(data_path, dict)
+    
+    label = ""
+    if not is_multi:
         label = st.sidebar.text_input(
             t("snapshot_label"),
             value="",
         )
-        if not label:
-            from datetime import datetime
-            label = datetime.now().strftime("%Y-%m-%d")
 
-        state, events = import_snapshot(state, new_data, label)
-        save_state(state)
-
-        has_changes = any([
-            events.get("new_followers"),
-            events.get("lost_followers"),
-            events.get("new_following"),
-            events.get("lost_following"),
-        ])
-
-        if has_changes or events.get("is_baseline"):
-            st.sidebar.success(t("import_success"))
+    if st.sidebar.button(t("import_new_data"), help=t("import_help")):
+        if is_multi:
+            total_imported = 0
+            for snap_label, path in data_path.items():
+                new_data = load_dataset(path)
+                # Skip empty datasets
+                if not new_data['followers'] and not new_data['following']:
+                    continue
+                    
+                state, events = import_snapshot(state, new_data, snap_label)
+                total_imported += 1
+                
+            if total_imported > 0:
+                save_state(state)
+                st.sidebar.success(t("import_success"))
+            else:
+                st.sidebar.info(t("import_no_changes"))
         else:
-            st.sidebar.info(t("import_no_changes"))
+            new_data = load_dataset(data_path)
+
+            if not label:
+                from datetime import datetime
+                label = datetime.now().strftime("%Y-%m-%d")
+
+            state, events = import_snapshot(state, new_data, label)
+            save_state(state)
+
+            has_changes = any([
+                events.get("new_followers"),
+                events.get("lost_followers"),
+                events.get("new_following"),
+                events.get("lost_following"),
+            ])
+
+            if has_changes or events.get("is_baseline"):
+                st.sidebar.success(t("import_success"))
+            else:
+                st.sidebar.info(t("import_no_changes"))
 
         st.rerun()
 

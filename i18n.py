@@ -32,10 +32,10 @@ STRINGS: dict[str, dict[str, str]] = {
         "no_subfolders": "Nessuna sottocartella.",
         "folder_access_denied": "Accesso negato a questa cartella.",
         "enter_path": "Oppure inserisci il percorso:",
-        "upload_zip_help": "Carica il file ZIP con i dati Instagram:",
+        "upload_zip_help": "Carica uno o più file ZIP con i dati Instagram:",
         "upload_zip_tooltip": (
-            "Il file ZIP deve contenere sottocartelle nominate per data "
-            "(es. 2026-03-20, 2026-04-03, ...)"
+            "Puoi caricare contemporaneamente più file ZIP per importare "
+            "più snapshot in ordine cronologico."
         ),
 
         # Sidebar – Theme
@@ -197,10 +197,10 @@ STRINGS: dict[str, dict[str, str]] = {
         "no_subfolders": "No subfolders.",
         "folder_access_denied": "Access denied to this folder.",
         "enter_path": "Or enter the path:",
-        "upload_zip_help": "Upload ZIP file with Instagram data:",
+        "upload_zip_help": "Upload one or more ZIP files with Instagram data:",
         "upload_zip_tooltip": (
-            "The ZIP file must contain subfolders named by date "
-            "(e.g. 2026-03-20, 2026-04-03, ...)"
+            "You can upload multiple ZIP files at once to import "
+            "multiple snapshots in chronological order."
         ),
 
         # Sidebar – Theme
