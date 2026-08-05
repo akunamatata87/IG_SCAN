@@ -46,14 +46,14 @@ render_language_toggle()
 # --- SIDEBAR: THEME ---
 theme = render_theme_settings()
 
+# --- SIDEBAR: STATE MANAGEMENT ---
+st.sidebar.markdown("---")
+render_state_management()
+
 # --- SIDEBAR: DATA SOURCE ---
 st.sidebar.markdown("---")
 st.sidebar.subheader(f"📂 {t('data')}")
 data_path = render_data_source()
-
-# --- SIDEBAR: STATE MANAGEMENT ---
-st.sidebar.markdown("---")
-render_state_management()
 
 # --- INJECT CUSTOM CSS ---
 inject_css(

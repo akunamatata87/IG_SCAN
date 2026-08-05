@@ -106,25 +106,8 @@ def save_state(state: dict, path: Optional[str] = None) -> bool:
         with open(path, 'w', encoding='utf-8') as f:
             json.dump(state, f, ensure_ascii=False, indent=2)
             
-        # Clean up old files: keep only the newest 2
-        import glob
-        files = glob.glob(os.path.join(directory, "world_state_*.json"))
-        files = [f for f in files if "backup" not in f.lower()]
-        files.sort(reverse=True)
-        
-        for old_file in files[2:]:
-            try:
-                os.remove(old_file)
-            except OSError:
-                pass
-                
-        # Also clean up legacy world_state.json if it exists and we have newer ones
-        legacy_path = os.path.join(directory, "world_state.json")
-        if os.path.exists(legacy_path) and len(files) >= 1:
-            try:
-                os.remove(legacy_path)
-            except OSError:
-                pass
+        # We no longer delete old files. The user requested to keep ALL previous world states.
+        # Legacy cleanup only: if world_state.json exists and we have newer ones, keep it but we don't need to delete it either.
                 
         return True
     except OSError as e:
