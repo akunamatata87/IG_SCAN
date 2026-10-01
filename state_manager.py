@@ -122,7 +122,8 @@ def _create_empty_state() -> dict:
         "last_updated": _now_iso(),
         "current": {
             "followers": [],
-            "following": []
+            "following": [],
+            "pending": []
         },
         "baseline": None,  # Set on first import
         "snapshots": []
@@ -152,6 +153,7 @@ def import_snapshot(
 
     new_followers = set(new_data.get('followers', set()))
     new_following = set(new_data.get('following', set()))
+    new_pending = set(new_data.get('pending', set()))
 
     if state is None:
         # First import — create baseline
@@ -159,17 +161,20 @@ def import_snapshot(
         state['baseline'] = {
             "label": label,
             "followers": sorted(new_followers),
-            "following": sorted(new_following)
+            "following": sorted(new_following),
+            "pending": sorted(new_pending)
         }
         state['current'] = {
             "followers": sorted(new_followers),
-            "following": sorted(new_following)
+            "following": sorted(new_following),
+            "pending": sorted(new_pending)
         }
         state['snapshots'] = [{
             "label": label,
             "timestamp": _now_iso(),
             "follower_count": len(new_followers),
             "following_count": len(new_following),
+            "pending_count": len(new_pending),
             "events": None  # Baseline — no events
         }]
 
@@ -178,6 +183,8 @@ def import_snapshot(
             "lost_followers": [],
             "new_following": [],
             "lost_following": [],
+            "new_pending": [],
+            "resolved_pending": [],
             "is_baseline": True
         }
         return state, events_summary
@@ -185,23 +192,29 @@ def import_snapshot(
     # Subsequent import — compute diffs against current state
     current_followers = set(state['current']['followers'])
     current_following = set(state['current']['following'])
+    current_pending = set(state['current'].get('pending', []))
 
     gained_followers = sorted(new_followers - current_followers)
     lost_followers_list = sorted(current_followers - new_followers)
     gained_following = sorted(new_following - current_following)
     lost_following_list = sorted(current_following - new_following)
+    gained_pending = sorted(new_pending - current_pending)
+    resolved_pending = sorted(current_pending - new_pending)
 
     events_summary = {
         "new_followers": gained_followers,
         "lost_followers": lost_followers_list,
         "new_following": gained_following,
         "lost_following": lost_following_list,
+        "new_pending": gained_pending,
+        "resolved_pending": resolved_pending,
         "is_baseline": False
     }
 
     # Check if there are any changes
     has_changes = any([gained_followers, lost_followers_list,
-                       gained_following, lost_following_list])
+                       gained_following, lost_following_list,
+                       gained_pending, resolved_pending])
 
     # Always record the snapshot (even if no changes, for trend tracking)
     snapshot = {
@@ -209,16 +222,21 @@ def import_snapshot(
         "timestamp": _now_iso(),
         "follower_count": len(new_followers),
         "following_count": len(new_following),
+        "pending_count": len(new_pending),
         "events": {
             "new_followers": gained_followers,
             "lost_followers": lost_followers_list,
             "new_following": gained_following,
-            "lost_following": lost_following_list
+            "lost_following": lost_following_list,
+            "new_pending": gained_pending,
+            "resolved_pending": resolved_pending
         } if has_changes else {
             "new_followers": [],
             "lost_followers": [],
             "new_following": [],
-            "lost_following": []
+            "lost_following": [],
+            "new_pending": [],
+            "resolved_pending": []
         }
     }
     state['snapshots'].append(snapshot)
@@ -226,7 +244,8 @@ def import_snapshot(
     # Update current state
     state['current'] = {
         "followers": sorted(new_followers),
-        "following": sorted(new_following)
+        "following": sorted(new_following),
+        "pending": sorted(new_pending)
     }
 
     return state, events_summary
@@ -311,10 +330,11 @@ def get_state_at(state: dict, target_label: str) -> dict:
     """
     baseline = state.get('baseline')
     if baseline is None:
-        return {'followers': set(), 'following': set()}
+        return {'followers': set(), 'following': set(), 'pending': set()}
 
     followers = set(baseline['followers'])
     following = set(baseline['following'])
+    pending = set(baseline.get('pending', []))
 
     for snapshot in state.get('snapshots', [])[1:]:  # Skip baseline (index 0)
         events = snapshot.get('events')
@@ -323,11 +343,13 @@ def get_state_at(state: dict, target_label: str) -> dict:
             followers.difference_update(events.get('lost_followers', []))
             following.update(events.get('new_following', []))
             following.difference_update(events.get('lost_following', []))
+            pending.update(events.get('new_pending', []))
+            pending.difference_update(events.get('resolved_pending', []))
 
         if snapshot['label'] == target_label:
             break
 
-    return {'followers': followers, 'following': following}
+    return {'followers': followers, 'following': following, 'pending': pending}
 
 
 def get_events_between(
@@ -407,10 +429,13 @@ def get_comparison_data(
     f2 = state_t1['followers']
     ing1 = state_t0['following']
     ing2 = state_t1['following']
+    p1 = state_t0['pending']
+    p2 = state_t1['pending']
 
     return {
         'f1': f1, 'f2': f2,
         'ing1': ing1, 'ing2': ing2,
+        'p1': p1, 'p2': p2,
         'gained': f2 - f1,
         'lost': f1 - f2,
         'nfb': ing2 - f2,

@@ -102,6 +102,8 @@ STRINGS: dict[str, dict[str, str]] = {
         "friends": "Amici",
         "fans": "Fan",
         "not_following_back": "Non ricambiano",
+        "pending_requests": "⏳ Richieste in sospeso",
+        "no_pending": "Nessuna richiesta in sospeso.",
         "theme_tip": (
             "💡 Usa il menu a sinistra per cambiare i colori "
             "dell'applicazione!"
@@ -268,6 +270,8 @@ STRINGS: dict[str, dict[str, str]] = {
         "friends": "Friends",
         "fans": "Fans",
         "not_following_back": "Not following back",
+        "pending_requests": "⏳ Pending requests",
+        "no_pending": "No pending requests.",
         "theme_tip": (
             "💡 Use the left menu to change the app colors!"
         ),

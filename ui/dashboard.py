@@ -6,14 +6,16 @@ import plotly.express as px
 from i18n import t
 
 
-def render_dashboard(comparison: dict):
+def render_dashboard(comparison: dict, t1_label: str):
     """Render the main dashboard with metrics, donut chart, and tips.
 
     Parameters
     ----------
     comparison : dict
-        Keys: f1, f2, ing1, ing2, gained, lost, nfb, fans, friends
+        Keys: f1, f2, ing1, ing2, gained, lost, nfb, fans, friends, p1, p2
         (all are sets).
+    t1_label : str
+        Human-readable date label for the end snapshot (T1).
     """
     # --- Metrics row ---
     c1, c2, c3, c4 = st.columns(4)
@@ -51,3 +53,24 @@ def render_dashboard(comparison: dict):
 
     with col_right:
         st.info(t("theme_tip"))
+
+    # --- Pending Requests ---
+    st.markdown("---")
+    st.subheader(t("pending_requests"))
+    
+    pending: set = comparison.get("p2", set())
+    if pending:
+        df_pending = pd.DataFrame({
+            "Username": sorted(pending),
+        })
+        df_pending[t("detection_date")] = t1_label
+        df_pending["Link"] = "https://instagram.com/" + df_pending["Username"]
+        
+        st.dataframe(
+            df_pending,
+            column_config={"Link": st.column_config.LinkColumn()},
+            hide_index=True,
+            width="stretch",
+        )
+    else:
+        st.info(t("no_pending"))

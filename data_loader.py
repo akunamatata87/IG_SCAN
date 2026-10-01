@@ -118,6 +118,14 @@ def extract_profiles(json_data: object) -> set[str]:
         # Strategy C – direct value field (legacy formats)
         if not username and "value" in entry:
             username = entry["value"]
+            
+        # Strategy D – label_values (e.g. pending_follow_requests.json)
+        if not username and "label_values" in entry:
+            for item in entry["label_values"]:
+                lbl = item.get("label", "").lower()
+                if "user" in lbl or "utente" in lbl:
+                    username = item.get("value")
+                    break
 
         if username:
             profiles.add(username)
@@ -153,10 +161,11 @@ def load_dataset(folder_path: str) -> dict[str, set[str]]:
         Either set may be empty if the corresponding files were not
         found or could not be parsed.
     """
-    data: dict[str, set[str]] = {"followers": set(), "following": set()}
+    data: dict[str, set[str]] = {"followers": set(), "following": set(), "pending": set()}
 
     follower_paths: list[str] = []
     following_path: str | None = None
+    pending_path: str | None = None
 
     for root, _dirs, files in os.walk(folder_path):
         for filename in files:
@@ -167,6 +176,10 @@ def load_dataset(folder_path: str) -> dict[str, set[str]]:
             # following.json — take only the first occurrence
             if following_path is None and filename == "following.json":
                 following_path = os.path.join(root, filename)
+                
+            # pending_follow_requests.json — take only the first occurrence
+            if pending_path is None and filename == "pending_follow_requests.json":
+                pending_path = os.path.join(root, filename)
 
     # -- Followers (merge all matched files) ---------------------------
     for path in follower_paths:
@@ -183,6 +196,14 @@ def load_dataset(folder_path: str) -> dict[str, set[str]]:
         if extracted:
             logger.debug("Loaded %d following from %s", len(extracted), following_path)
             data["following"] = extracted
+
+    # -- Pending Follow Requests ---------------------------------------
+    if pending_path is not None:
+        json_raw = get_json_data(pending_path)
+        extracted = extract_profiles(json_raw)
+        if extracted:
+            logger.debug("Loaded %d pending from %s", len(extracted), pending_path)
+            data["pending"] = extracted
 
     if not data["followers"]:
         logger.warning("No follower profiles found in %s", folder_path)
