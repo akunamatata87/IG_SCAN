@@ -142,7 +142,7 @@ tab1, tab2, tab3, tab4, tab5 = st.tabs([
 ])
 
 with tab1:
-    render_dashboard(comparison)
+    render_dashboard(comparison, t1_label)
 
 with tab2:
     render_lost_tab(comparison, all_events, t0_label, t1_label)
